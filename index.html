@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dixon Statistical Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #080c10;
+  --bg2:   #0d1117;
+  --bg3:   #151c24;
+  --bg4:   #1c2530;
+  --border:#1e2d3d;
+  --border2:#263545;
+  --cyan:  #00d4ff;
+  --cyan2: #00a8cc;
+  --green: #00ff88;
+  --green2:#00cc66;
+  --red:   #ff4060;
+  --amber: #ffb020;
+  --amber2:#cc8800;
+  --violet:#a855f7;
+  --blue:  #3b82f6;
+  --white: #e2e8f0;
+  --muted: #4a6080;
+  --muted2:#2a3a4a;
+  --font:  'JetBrains Mono', monospace;
+  --sans:  'Space Grotesk', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--bg);
+  color:var(--white);
+  font-family:var(--font);
+  font-size:11px;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* ─── SCANLINE OVERLAY ─── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,0.015) 2px,rgba(0,212,255,0.015) 4px);
+  pointer-events:none;z-index:9999;
+}
+
+/* ─── TOP BAR ─── */
+.topbar{
+  background:linear-gradient(90deg,#061018,#0a1520,#061018);
+  border-bottom:1px solid var(--cyan2);
+  padding:0 14px;
+  height:36px;
+  display:flex;align-items:center;gap:0;
+  flex-shrink:0;
+  position:relative;
+}
+.topbar::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  opacity:0.6;
+}
+.brand{
+  font-size:14px;font-weight:800;letter-spacing:0.12em;
+  color:var(--cyan);
+  text-shadow:0 0 20px rgba(0,212,255,0.5);
+  white-space:nowrap;
+  margin-right:20px;
+}
+.brand span{color:var(--amber);text-shadow:0 0 20px rgba(255,176,32,0.5);}
+.ticker-wrap{flex:1;overflow:hidden;height:20px;position:relative;}
+.ticker-inner{
+  display:flex;gap:28px;
+  animation:ticker-scroll 40s linear infinite;
+  white-space:nowrap;position:absolute;
+}
+@keyframes ticker-scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.t-item{font-size:10px;font-weight:500;color:var(--muted);}
+.t-item .up{color:var(--green);}
+.t-item .dn{color:var(--red);}
+.t-item .nm{color:var(--amber);}
+.topbar-right{display:flex;align-items:center;gap:14px;flex-shrink:0;margin-left:16px;}
+.live-pill{
+  background:rgba(0,255,136,0.1);border:1px solid var(--green2);
+  color:var(--green);font-size:9px;font-weight:700;padding:2px 8px;border-radius:2px;
+  letter-spacing:0.1em;
+  animation:pill-pulse 2s infinite;
+}
+@keyframes pill-pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
+#clock{color:var(--cyan);font-size:11px;font-weight:600;}
+
+/* ─── HEADER BAND ─── */
+.header{
+  background:linear-gradient(90deg,#0a1520,#0d1a28,#0a1520);
+  border-bottom:2px solid var(--border);
+  padding:8px 14px;
+  display:flex;align-items:center;gap:16px;
+  flex-shrink:0;
+}
+.h-symbol{
+  font-size:26px;font-weight:800;color:var(--cyan);
+  letter-spacing:0.06em;text-shadow:0 0 30px rgba(0,212,255,0.4);
+  line-height:1;
+}
+.h-meta{display:flex;flex-direction:column;gap:2px;}
+.h-name{font-family:var(--sans);font-size:11px;color:var(--muted);font-weight:500;}
+.h-tags{display:flex;gap:6px;margin-top:2px;}
+.htag{font-size:8px;font-weight:700;padding:1px 5px;border-radius:1px;letter-spacing:0.08em;}
+.htag-ems{background:rgba(0,212,255,0.1);border:1px solid var(--cyan2);color:var(--cyan);}
+.htag-nse{background:rgba(255,176,32,0.1);border:1px solid var(--amber2);color:var(--amber);}
+.htag-pli{background:rgba(0,255,136,0.1);border:1px solid var(--green2);color:var(--green);}
+.h-divider{width:1px;height:48px;background:var(--border2);margin:0 8px;}
+.h-stats{display:flex;gap:20px;align-items:center;}
+.hstat{display:flex;flex-direction:column;gap:1px;}
+.hstat-label{font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
+.hstat-value{font-size:13px;font-weight:700;color:var(--white);}
+.hstat-value.up{color:var(--green);}
+.hstat-value.dn{color:var(--red);}
+.hstat-value.yl{color:var(--amber);}
+.hstat-value.cy{color:var(--cyan);}
+.h-price-block{margin-left:auto;text-align:right;}
+.h-price{font-size:32px;font-weight:800;color:var(--amber);text-shadow:0 0 30px rgba(255,176,32,0.3);line-height:1;}
+.h-chg{font-size:13px;font-weight:700;margin-top:2px;}
+.h-chg.up{color:var(--green);}
+.h-chg.dn{color:var(--red);}
+.h-sub{font-size:9px;color:var(--muted);margin-top:3px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;animation:pill-pulse 1.5s infinite;}
+
+/* ─── TABS ─── */
+.tabs{
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  flex-shrink:0;
+}
+.tab{
+  padding:8px 16px;
+  font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--muted);cursor:pointer;
+  border-right:1px solid var(--border);
+  transition:all 0.15s;position:relative;
+}
+.tab:hover{color:var(--white);background:var(--bg3);}
+.tab.active{color:var(--cyan);background:var(--bg3);}
+.tab.active::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+}
+
+/* ─── MAIN ─── */
+.main{flex:1;overflow:hidden;display:flex;}
+.panel{display:none;width:100%;overflow-y:auto;padding:10px;gap:8px;flex-direction:column;}
+.panel.active{display:flex;}
+
+/* ─── GRID ─── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.g32{display:grid;grid-template-columns:2fr 1fr;gap:8px;}
+.g23{display:grid;grid-template-columns:1fr 2fr;gap:8px;}
+
+/* ─── CARD ─── */
+.card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:3px;
+  overflow:hidden;
+}
+.card:hover{border-color:var(--border2);}
+.ch{
+  background:linear-gradient(90deg,var(--bg3),var(--bg4));
+  border-bottom:1px solid var(--border);
+  padding:5px 10px;
+  font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--cyan);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.ch .badge{
+  font-size:8px;background:rgba(0,212,255,0.15);border:1px solid var(--cyan2);
+  color:var(--cyan);padding:1px 6px;border-radius:1px;font-weight:700;
+}
+.ch .badge-amber{background:rgba(255,176,32,0.15);border-color:var(--amber2);color:var(--amber);}
+.ch .badge-green{background:rgba(0,255,136,0.15);border-color:var(--green2);color:var(--green);}
+.ch .badge-red{background:rgba(255,64,96,0.15);border-color:var(--red);color:var(--red);}
+.cb{padding:8px 10px;}
+
+/* ─── KV TABLE ─── */
+.kv{width:100%;border-collapse:collapse;}
+.kv tr{border-bottom:1px solid var(--muted2);}
+.kv tr:last-child{border-bottom:none;}
+.kv td{padding:4px 0;font-size:10px;}
+.kv td:first-child{color:var(--muted);width:58%;}
+.kv td:last-child{text-align:right;font-weight:600;color:var(--white);}
+.vu{color:var(--green)!important;}
+.vd{color:var(--red)!important;}
+.vy{color:var(--amber)!important;}
+.vc{color:var(--cyan)!important;}
+.vv{color:var(--violet)!important;}
+
+/* ─── DATA TABLE ─── */
+.dt{width:100%;border-collapse:collapse;}
+.dt th{
+  font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--cyan);padding:5px 7px;border-bottom:1px solid var(--border2);
+  text-align:left;background:var(--bg3);
+  white-space:nowrap;
+}
+.dt th:not(:first-child){text-align:right;}
+.dt td{
+  font-size:10px;padding:4px 7px;
+  border-bottom:1px solid var(--muted2);color:var(--white);
+  white-space:nowrap;
+}
+.dt td:not(:first-child){text-align:right;}
+.dt tr:last-child td{border-bottom:none;}
+.dt tr:hover td{background:var(--bg3);}
+.dt .q-label{color:var(--amber);font-weight:600;}
+
+/* ─── SVG CHARTS ─── */
+.chart-box{
+  background:var(--bg);border:1px solid var(--border);border-radius:2px;
+  width:100%;overflow:hidden;
+}
+
+/* ─── CORRELATION HEATMAP ─── */
+.heatmap-wrap{overflow-x:auto;}
+.hm-cell{
+  width:52px;height:40px;display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:600;border:1px solid var(--bg2);cursor:default;
+  transition:all 0.1s;
+}
+.hm-cell:hover{z-index:10;transform:scale(1.1);border-color:var(--cyan);}
+.hm-label{
+  width:72px;font-size:9px;color:var(--cyan);font-weight:600;
+  display:flex;align-items:center;padding-left:4px;
+}
+.hm-row{display:flex;align-items:center;gap:1px;}
+
+/* ─── R-BAR ─── */
+.r-bar-wrap{margin:4px 0;}
+.r-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.r-bar-label{color:var(--muted);font-size:9px;width:80px;flex-shrink:0;}
+.r-bar-track{flex:1;height:14px;background:var(--bg3);border-radius:1px;overflow:hidden;position:relative;}
+.r-bar-fill{height:100%;border-radius:1px;transition:width 1s ease;}
+.r-bar-val{font-size:9px;font-weight:700;width:36px;text-align:right;flex-shrink:0;}
+.r-bar-eq{font-size:8px;color:var(--muted);margin-top:1px;font-family:var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ─── REGRESSION SECTION ─── */
+.reg-block{
+  border:1px solid var(--border);border-radius:2px;padding:8px 10px;
+  background:var(--bg);margin-bottom:6px;
+}
+.reg-title{color:var(--cyan);font-size:10px;font-weight:700;margin-bottom:6px;}
+.reg-eq{
+  background:var(--bg3);padding:6px 10px;border-radius:2px;
+  border-left:3px solid var(--amber);
+  font-size:11px;color:var(--amber);font-weight:600;
+  letter-spacing:0.03em;margin-bottom:6px;
+}
+.reg-stats{display:flex;gap:14px;flex-wrap:wrap;}
+.reg-stat{font-size:9px;}
+.reg-stat .rsl{color:var(--muted);}
+.reg-stat .rsv{color:var(--white);font-weight:600;}
+
+/* ─── NEWS ─── */
+.news-item{border-bottom:1px solid var(--border);padding:8px 0;}
+.news-item:last-child{border-bottom:none;}
+.news-meta{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.news-time{color:var(--amber);font-size:9px;font-weight:700;}
+.news-src{color:var(--cyan);font-size:9px;}
+.news-sent-pos{color:var(--green);font-size:8px;font-weight:700;border:1px solid var(--green2);padding:0 4px;border-radius:1px;}
+.news-sent-neg{color:var(--red);font-size:8px;font-weight:700;border:1px solid var(--red);padding:0 4px;border-radius:1px;}
+.news-sent-neu{color:var(--amber);font-size:8px;font-weight:700;border:1px solid var(--amber2);padding:0 4px;border-radius:1px;}
+.news-hl{color:var(--white);font-size:11px;font-family:var(--sans);font-weight:600;line-height:1.4;}
+.news-sm{color:var(--muted);font-size:10px;font-family:var(--sans);margin-top:2px;line-height:1.4;}
+
+/* ─── AI ─── */
+.ai-msg{background:var(--bg3);border:1px solid var(--border2);border-radius:2px;padding:8px 10px;margin-bottom:6px;}
+.ai-msg-user{border-left:3px solid var(--cyan);text-align:left;}
+.ai-msg-ai{border-left:3px solid var(--amber);}
+.ai-label{font-size:8px;font-weight:700;letter-spacing:0.12em;margin-bottom:4px;}
+.ai-label.user-label{color:var(--cyan);}
+.ai-label.ai-label-tag{color:var(--amber);}
+.ai-body{font-size:11px;font-family:var(--sans);line-height:1.6;color:var(--white);white-space:pre-wrap;}
+
+/* ─── PROG BAR ─── */
+.pb-wrap{background:var(--bg3);height:6px;border-radius:1px;overflow:hidden;margin-top:3px;}
+.pb-fill{height:100%;border-radius:1px;transition:width 1.2s ease;}
+
+/* ─── LOADING ─── */
+.loading-line{height:2px;background:var(--bg3);overflow:hidden;margin:6px 0;}
+.loading-inner{height:100%;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:load 1.4s ease-in-out infinite;}
+@keyframes load{0%{transform:translateX(-100%);}100%{transform:translateX(200%);}  }
+.loading-text{color:var(--cyan);font-size:10px;text-align:center;padding:12px;animation:pill-pulse 1s infinite;}
+
+/* ─── CMD + STATUS ─── */
+.cmdbar{
+  background:#050a0f;border-top:1px solid var(--cyan2);
+  padding:4px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.cmdbar input{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--cyan);font-family:var(--font);font-size:10px;
+  caret-color:var(--cyan);
+}
+.cmdbar-lbl{color:var(--muted);font-size:9px;}
+.statusbar{
+  background:#030608;border-top:1px solid var(--border);
+  padding:2px 14px;display:flex;align-items:center;gap:16px;flex-shrink:0;
+  font-size:8px;color:var(--muted);
+}
+.statusbar span{color:var(--white);}
+.status-dot{width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;animation:pill-pulse 2s infinite;}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* ─── SPARKLINE IN HEADER ─── */
+#hdr-spark{width:100px;height:36px;}
+
+/* ─── SIGNAL BADGE ─── */
+.sig{display:inline-block;padding:1px 6px;font-size:8px;font-weight:700;border-radius:1px;letter-spacing:0.06em;}
+.sig-strong{background:rgba(0,255,136,0.15);border:1px solid var(--green2);color:var(--green);}
+.sig-mod{background:rgba(255,176,32,0.15);border:1px solid var(--amber2);color:var(--amber);}
+.sig-weak{background:rgba(74,96,128,0.2);border:1px solid var(--muted);color:var(--muted);}
+.sig-neg{background:rgba(255,64,96,0.15);border:1px solid var(--red);color:var(--red);}
+
+/* ─── FORMULA BOX ─── */
+.formula{
+  background:var(--bg);border:1px solid var(--border2);border-radius:2px;
+  padding:6px 10px;font-size:10px;color:var(--violet);
+  font-weight:600;letter-spacing:0.02em;margin:4px 0;
+}
+
+/* insight block */
+.insight{
+  border-left:3px solid var(--cyan);
+  background:rgba(0,212,255,0.05);
+  padding:6px 10px;margin-bottom:5px;border-radius:0 2px 2px 0;
+}
+.insight.amber{border-left-color:var(--amber);background:rgba(255,176,32,0.05);}
+.insight.green{border-left-color:var(--green);background:rgba(0,255,136,0.05);}
+.insight.red{border-left-color:var(--red);background:rgba(255,64,96,0.05);}
+.insight-title{font-size:9px;font-weight:700;color:var(--cyan);margin-bottom:2px;letter-spacing:0.08em;}
+.insight.amber .insight-title{color:var(--amber);}
+.insight.green .insight-title{color:var(--green);}
+.insight.red .insight-title{color:var(--red);}
+.insight-body{font-size:10px;font-family:var(--sans);color:var(--white);line-height:1.5;}
+</style>
+</head>
+<body>
+
+<!-- ─── TOP BAR ─── -->
+<div class="topbar">
+  <div class="brand">DIXON <span>STAT</span>TERMINAL</div>
+  <div class="ticker-wrap">
+    <div class="ticker-inner" id="tickerEl">
+      <span class="t-item">DIXON <span class="up">₹14,000 ▲+2.1%</span></span>
+      <span class="t-item">NIFTY50 <span class="nm">26,373</span></span>
+      <span class="t-item">PE RATIO <span class="up">707.1×</span></span>
+      <span class="t-item">EPS <span class="up">₹19.8</span></span>
+      <span class="t-item">ROE <span class="up">53.3%</span></span>
+      <span class="t-item">AMBER <span class="nm">₹7,930</span></span>
+      <span class="t-item">INR/USD <span class="dn">90.5</span></span>
+      <span class="t-item">DRAM <span class="dn">$5.85/GB</span></span>
+      <span class="t-item">SHARPE <span class="nm">1.03</span></span>
+      <span class="t-item">r(PE,Price) <span class="up">0.9894</span></span>
+      <span class="t-item">r(EPS,Price) <span class="up">0.9622</span></span>
+      <span class="t-item">r(ROE,Price) <span class="up">0.9489</span></span>
+      <span class="t-item">DIXON <span class="up">₹14,000 ▲+2.1%</span></span>
+      <span class="t-item">NIFTY50 <span class="nm">26,373</span></span>
+      <span class="t-item">PE RATIO <span class="up">707.1×</span></span>
+      <span class="t-item">EPS <span class="up">₹19.8</span></span>
+      <span class="t-item">ROE <span class="up">53.3%</span></span>
+      <span class="t-item">AMBER <span class="nm">₹7,930</span></span>
+      <span class="t-item">INR/USD <span class="dn">90.5</span></span>
+      <span class="t-item">DRAM <span class="dn">$5.85/GB</span></span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="live-pill">● LIVE</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</div>
+
+<!-- ─── HEADER ─── -->
+<div class="header">
+  <div>
+    <div class="h-symbol">DIXON <span style="color:var(--muted);font-size:16px;font-weight:400">IN EQ</span></div>
+    <div class="h-meta">
+      <div class="h-name">Dixon Technologies (India) Ltd · NSE · EMS Sector</div>
+      <div class="h-tags">
+        <span class="htag htag-ems">EMS LEADER</span>
+        <span class="htag htag-nse">NSE LISTED</span>
+        <span class="htag htag-pli">PLI BENEFICIARY</span>
+      </div>
+    </div>
+  </div>
+  <div class="h-divider"></div>
+  <div class="h-stats">
+    <div class="hstat">
+      <div class="hstat-label">Study Period</div>
+      <div class="hstat-value cy">Q1FY21–Q4FY25</div>
+    </div>
+    <div class="hstat">
+      <div class="hstat-label">Observations</div>
+      <div class="hstat-value">n = 20 Qtrs</div>
+    </div>
+    <div class="hstat">
+      <div class="hstat-label">Best r (PE)</div>
+      <div class="hstat-value vu">0.9894</div>
+    </div>
+    <div class="hstat">
+      <div class="hstat-label">Sig Level</div>
+      <div class="hstat-value yl">α = 5%</div>
+    </div>
+    <div class="hstat">
+      <div class="hstat-label">26.5× Return</div>
+      <div class="hstat-value vu">₹595→₹15,800</div>
+    </div>
+    <div class="hstat">
+      <div class="hstat-label">Method</div>
+      <div class="hstat-value" style="font-size:9px">Pearson r · OLS</div>
+    </div>
+  </div>
+  <div class="h-divider"></div>
+  <svg id="hdr-spark" viewBox="0 0 100 36" preserveAspectRatio="none" style="flex-shrink:0"></svg>
+  <div class="h-price-block">
+    <div class="h-price">₹14,000</div>
+    <div class="h-chg up">▲ +₹296 (+2.16%)</div>
+    <div class="h-sub"><span class="live-dot"></span>Q4FY25 · NSE · Statistical Terminal</div>
+  </div>
+</div>
+
+<!-- ─── TABS ─── -->
+<div class="tabs">
+  <div class="tab active"   onclick="switchTab('overview')">OVERVIEW</div>
+  <div class="tab"          onclick="switchTab('rawdata')">RAW DATA</div>
+  <div class="tab"          onclick="switchTab('correlation')">CORRELATION</div>
+  <div class="tab"          onclick="switchTab('regression')">OLS REGRESSION</div>
+  <div class="tab"          onclick="switchTab('heatmap')">HEATMAP</div>
+  <div class="tab"          onclick="switchTab('projections')">PROJECTIONS</div>
+  <div class="tab"          onclick="switchTab('news')">NEWS FLASH</div>
+  <div class="tab"          onclick="switchTab('analyst')">AI ANALYST</div>
+</div>
+
+<!-- ─── MAIN CONTENT ─── -->
+<div class="main">
+
+<!-- ══════════════ OVERVIEW ══════════════ -->
+<div class="panel active" id="tab-overview">
+
+  <div class="g4">
+    <!-- Price Journey -->
+    <div class="card">
+      <div class="ch">Price Journey <span class="badge">26.5× IN 4.5 YRS</span></div>
+      <div class="cb">
+        <table class="kv">
+          <tr><td>Q1FY21 (Base)</td><td class="vy">₹595</td></tr>
+          <tr><td>Q4FY22 (Trough)</td><td class="vd">₹520</td></tr>
+          <tr><td>Q3FY25 (ATH)</td><td class="vu">₹15,800</td></tr>
+          <tr><td>Q4FY25 (Latest)</td><td class="vy">₹14,000</td></tr>
+          <tr><td>Total Return</td><td class="vu">+2,253%</td></tr>
+          <tr><td>CAGR (4.5Y)</td><td class="vu">~86% p.a.</td></tr>
+          <tr><td>Nifty50 Return</td><td>+124%</td></tr>
+          <tr><td>Alpha vs Nifty</td><td class="vu">+2,129%</td></tr>
+        </table>
+      </div>
+    </div>
+    <!-- Key Drivers -->
+    <div class="card">
+      <div class="ch">Fundamental Drivers</div>
+      <div class="cb">
+        <table class="kv">
+          <tr><td>EPS Growth</td><td class="vu">₹5.2→₹22 (+323%)</td></tr>
+          <tr><td>PE Re-rating</td><td class="vu">114×→718×</td></tr>
+          <tr><td>ROE Expansion</td><td class="vu">15.2%→53.3%</td></tr>
+          <tr><td>Rev CAGR (est)</td><td class="vu">~40% p.a.</td></tr>
+          <tr><td>Amber Price</td><td class="vy">₹1,850→₹7,930</td></tr>
+          <tr><td>Nifty50 Growth</td><td>11,762→26,373</td></tr>
+          <tr><td>INR Depr.</td><td class="vd">76.5→90.5</td></tr>
+          <tr><td>DRAM Price Chg</td><td>$4.85→$5.85</td></tr>
+        </table>
+      </div>
+    </div>
+    <!-- Correlation Rank -->
+    <div class="card">
+      <div class="ch">Correlation Ranking <span class="badge-amber badge">vs PRICE</span></div>
+      <div class="cb" style="padding-top:6px">
+        <div class="r-bar-wrap">
+          <div class="r-bar-row"><span class="r-bar-label">PE Ratio</span><div class="r-bar-track"><div class="r-bar-fill" style="width:98.94%;background:linear-gradient(90deg,#00ff88,#00cc66)"></div></div><span class="r-bar-val vu">0.9894</span></div>
+          <div class="r-bar-row"><span class="r-bar-label">Amber ₹</span><div class="r-bar-track"><div class="r-bar-fill" style="width:96.67%;background:linear-gradient(90deg,#00d4ff,#0088aa)"></div></div><span class="r-bar-val vc">0.9667</span></div>
+          <div class="r-bar-row"><span class="r-bar-label">EPS ₹</span><div class="r-bar-track"><div class="r-bar-fill" style="width:96.22%;background:linear-gradient(90deg,#00d4ff,#0088aa)"></div></div><span class="r-bar-val vc">0.9622</span></div>
+          <div class="r-bar-row"><span class="r-bar-label">ROE %</span><div class="r-bar-track"><div class="r-bar-fill" style="width:94.89%;background:linear-gradient(90deg,#a855f7,#7c3aed)"></div></div><span class="r-bar-val vv">0.9489</span></div>
+          <div class="r-bar-row"><span class="r-bar-label">Nifty50</span><div class="r-bar-track"><div class="r-bar-fill" style="width:89.88%;background:linear-gradient(90deg,#ffb020,#cc8800)"></div></div><span class="r-bar-val vy">0.8988</span></div>
+          <div class="r-bar-row"><span class="r-bar-label">INR/USD</span><div class="r-bar-track"><div class="r-bar-fill" style="width:74.28%;background:#3b82f6"></div></div><span class="r-bar-val" style="color:var(--blue)">0.7428</span></div>
+          <div class="r-bar-row"><span class="r-bar-label">DRAM $/GB</span><div class="r-bar-track"><div class="r-bar-fill" style="width:31.23%;background:var(--muted)"></div></div><span class="r-bar-val" style="color:var(--muted)">0.3123</span></div>
+          <div class="r-bar-row"><span class="r-bar-label">Sharpe 1Y</span><div class="r-bar-track"><div class="r-bar-fill" style="width:29.93%;background:var(--muted)"></div></div><span class="r-bar-val" style="color:var(--muted)">0.2993</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Signal Strength -->
+    <div class="card">
+      <div class="ch">Signal Classification</div>
+      <div class="cb">
+        <table class="kv">
+          <tr><td>PE Ratio</td><td><span class="sig sig-strong">VERY STRONG</span></td></tr>
+          <tr><td>Amber Price</td><td><span class="sig sig-strong">VERY STRONG</span></td></tr>
+          <tr><td>EPS</td><td><span class="sig sig-strong">VERY STRONG</span></td></tr>
+          <tr><td>ROE %</td><td><span class="sig sig-strong">VERY STRONG</span></td></tr>
+          <tr><td>Nifty50</td><td><span class="sig sig-mod">STRONG</span></td></tr>
+          <tr><td>INR/USD</td><td><span class="sig sig-mod">MODERATE</span></td></tr>
+          <tr><td>DRAM $/GB</td><td><span class="sig sig-weak">WEAK</span></td></tr>
+          <tr><td>Sharpe 1Yr</td><td><span class="sig sig-weak">WEAK</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Price Chart -->
+  <div class="card">
+    <div class="ch">Dixon Stock Price — Q1FY21 to Q4FY25 (20 Quarters) <span class="badge">ALL DATA POINTS</span></div>
+    <div class="cb" style="padding:0">
+      <div class="chart-box" style="height:190px">
+        <svg id="priceChart" width="100%" height="190" viewBox="0 0 1200 190" preserveAspectRatio="none"></svg>
+      </div>
+      <div style="display:flex;gap:20px;padding:6px 10px;flex-wrap:wrap">
+        <span style="font-size:9px;color:var(--muted)">Q1FY21: <span style="color:var(--white)">₹595</span></span>
+        <span style="font-size:9px;color:var(--muted)">Trough FY22: <span style="color:var(--red)">₹520</span></span>
+        <span style="font-size:9px;color:var(--muted)">Breakout Q1FY23: <span style="color:var(--amber)">₹920</span></span>
+        <span style="font-size:9px;color:var(--muted)">ATH Q3FY25: <span style="color:var(--green)">₹15,800</span></span>
+        <span style="font-size:9px;color:var(--muted)">n=20 · EMS Rally · PLI-driven</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Insights Row -->
+  <div class="g2">
+    <div class="card">
+      <div class="ch">Study Overview</div>
+      <div class="cb" style="display:flex;flex-direction:column;gap:5px;">
+        <div class="insight">
+          <div class="insight-title">ANALYSIS TYPE</div>
+          <div class="insight-body">Karl Pearson r → OLS Regression → Equation Derivation → Residual Analysis across 8 independent variables vs Dixon stock price over 20 quarters (Q1FY21–Q4FY25)</div>
+        </div>
+        <div class="insight amber">
+          <div class="insight-title">PRIMARY FINDING</div>
+          <div class="insight-body">PE Ratio has highest correlation with Dixon price (r = 0.9894). The market prices Dixon almost purely on earnings multiple expansion — a classic growth-stock re-rating story in India's EMS boom.</div>
+        </div>
+        <div class="insight green">
+          <div class="insight-title">SECTOR SIGNAL</div>
+          <div class="insight-body">Amber Price (₹) correlation = 0.97 — sector-level EMS re-rating dominated. Dixon and Amber moved in near-lockstep, suggesting basket/ETF strategies could replicate Dixon exposure.</div>
+        </div>
+        <div class="insight red">
+          <div class="insight-title">NEGATIVE SIGNAL</div>
+          <div class="insight-body">DRAM $/GB shows −0.67 correlation with Sharpe Ratio — electronics input cost volatility significantly hurts risk-adjusted returns even when stock price rises.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">All 8 Regression Equations</div>
+      <div class="cb">
+        <table class="dt">
+          <thead><tr><th>Variable (X)</th><th>r</th><th>Slope b</th><th>Intercept a</th><th>Strength</th></tr></thead>
+          <tbody>
+            <tr><td class="q-label">PE Ratio</td><td class="vu">0.9894</td><td>21.6281</td><td>-1,662.6</td><td><span class="sig sig-strong" style="font-size:8px">VERY STRONG</span></td></tr>
+            <tr><td class="q-label">Amber ₹</td><td class="vc">0.9667</td><td>2.5375</td><td>-4,674.3</td><td><span class="sig sig-strong" style="font-size:8px">VERY STRONG</span></td></tr>
+            <tr><td class="q-label">EPS ₹</td><td class="vc">0.9622</td><td>958.081</td><td>-6,975.2</td><td><span class="sig sig-strong" style="font-size:8px">VERY STRONG</span></td></tr>
+            <tr><td class="q-label">ROE %</td><td class="vv">0.9489</td><td>470.491</td><td>-8,497.7</td><td><span class="sig sig-strong" style="font-size:8px">VERY STRONG</span></td></tr>
+            <tr><td class="q-label">Nifty50</td><td class="vy">0.8988</td><td>1.0990</td><td>-15,601.6</td><td><span class="sig sig-mod" style="font-size:8px">STRONG</span></td></tr>
+            <tr><td class="q-label">INR/USD</td><td style="color:var(--blue)">0.7428</td><td>842.787</td><td>-63,060.1</td><td><span class="sig sig-mod" style="font-size:8px">MODERATE</span></td></tr>
+            <tr><td class="q-label">DRAM $/GB</td><td style="color:var(--muted)">0.3123</td><td>1,706.09</td><td>-1,714.9</td><td><span class="sig sig-weak" style="font-size:8px">WEAK</span></td></tr>
+            <tr><td class="q-label">Sharpe 1Yr</td><td style="color:var(--muted)">0.2993</td><td>3,355.04</td><td>1,204.9</td><td><span class="sig sig-weak" style="font-size:8px">WEAK</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ RAW DATA ══════════════ -->
+<div class="panel" id="tab-rawdata">
+  <div class="card">
+    <div class="ch">Complete 20-Quarter Dataset — Dixon Technologies Q1FY21 to Q4FY25 <span class="badge">n = 20 OBSERVATIONS</span></div>
+    <div class="cb" style="padding:0">
+      <div style="overflow-x:auto">
+        <table class="dt" style="min-width:900px">
+          <thead>
+            <tr>
+              <th>Quarter</th>
+              <th>Price ₹</th>
+              <th>EPS ₹</th>
+              <th>PE Ratio</th>
+              <th>ROE %</th>
+              <th>Sharpe 1Y</th>
+              <th>Nifty50</th>
+              <th>DRAM $/GB</th>
+              <th>INR/USD</th>
+              <th>Amber ₹</th>
+              <th>Qtr Return</th>
+            </tr>
+          </thead>
+          <tbody id="rawDataBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="g4">
+    <div class="card">
+      <div class="ch">Price Statistics</div>
+      <div class="cb">
+        <table class="kv">
+          <tr><td>Mean (ȳ)</td><td class="vy">₹4,704.25</td></tr>
+          <tr><td>Median</td><td>₹2,900</td></tr>
+          <tr><td>Min</td><td class="vd">₹520 (Q4FY22)</td></tr>
+          <tr><td>Max</td><td class="vu">₹15,800 (Q3FY25)</td></tr>
+          <tr><td>Σ Prices</td><td>₹94,085</td></tr>
+          <tr><td>Std Dev (est)</td><td>~₹4,800</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">EPS Statistics</div>
+      <div class="cb">
+        <table class="kv">
+          <tr><td>Mean (x̄)</td><td class="vy">₹12.19</td></tr>
+          <tr><td>Min EPS</td><td>₹5.20 (Q1FY21)</td></tr>
+          <tr><td>Max EPS</td><td class="vu">₹22.00 (Q3FY25)</td></tr>
+          <tr><td>ΣX (EPS)</td><td>243.81</td></tr>
+          <tr><td>ΣXY</td><td>1,632,186</td></tr>
+          <tr><td>ΣX²</td><td>3,478.64</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">PE Ratio Statistics</div>
+      <div class="cb">
+        <table class="kv">
+          <tr><td>Mean (x̄)</td><td class="vy">294.38×</td></tr>
+          <tr><td>Min PE</td><td class="vd">63× (Q4FY22)</td></tr>
+          <tr><td>Max PE</td><td class="vu">718.2× (Q3FY25)</td></tr>
+          <tr><td>ΣX (PE)</td><td>5,887.6</td></tr>
+          <tr><td>ΣXY</td><td>50,423,922</td></tr>
+          <tr><td>Expansion</td><td class="vu">+571% re-rating</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">ROE Statistics</div>
+      <div class="cb">
+        <table class="kv">
+          <tr><td>Mean (x̄)</td><td class="vy">28.06%</td></tr>
+          <tr><td>Min ROE</td><td>15.2% (Q1FY21)</td></tr>
+          <tr><td>Max ROE</td><td class="vu">53.3% (Q4FY25)</td></tr>
+          <tr><td>ΣX (ROE)</td><td>561.2</td></tr>
+          <tr><td>ΣXY</td><td>3,601,034</td></tr>
+          <tr><td>Net Improvement</td><td class="vu">+38.1 pp</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ CORRELATION ══════════════ -->
+<div class="panel" id="tab-correlation">
+  <div class="g2">
+    <div class="card">
+      <div class="ch">Karl Pearson r — Step-by-Step Formula</div>
+      <div class="cb">
+        <div class="formula">r = [n·ΣXY − ΣX·ΣY] ÷ √([n·ΣX² − (ΣX)²] × [n·ΣY² − (ΣY)²])</div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:8px;font-family:var(--sans);line-height:1.6;">
+          Karl Pearson's r measures linear association between two continuous variables. It ranges from −1 (perfect negative) to +1 (perfect positive). A value ≥ 0.90 in a 20-observation study indicates an extremely strong and statistically significant relationship.
+        </div>
+        <table class="dt">
+          <thead><tr><th>Step</th><th>Component</th><th>EPS Example Value</th></tr></thead>
+          <tbody>
+            <tr><td class="q-label">n</td><td>Number of observations</td><td>20</td></tr>
+            <tr><td class="q-label">ΣXY</td><td>Sum of products</td><td>1,632,186</td></tr>
+            <tr><td class="q-label">ΣX</td><td>Sum of EPS values</td><td>243.81</td></tr>
+            <tr><td class="q-label">ΣY</td><td>Sum of Prices</td><td>94,085</td></tr>
+            <tr><td class="q-label">ΣX²</td><td>Sum of EPS²</td><td>3,478.64</td></tr>
+            <tr><td class="q-label">ΣY²</td><td>Sum of Price²</td><td>944,773,325</td></tr>
+            <tr><td class="q-label">Numerator</td><td>n·ΣXY − ΣX·ΣY</td><td class="vu">9,704,856.15</td></tr>
+            <tr><td class="q-label">Denom P1</td><td>n·ΣX² − (ΣX)²</td><td>10,129.47</td></tr>
+            <tr><td class="q-label">r (EPS)</td><td>Final coefficient</td><td class="vc">0.9622</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">All r Values + Regression Equations</div>
+      <div class="cb">
+        <div class="r-bar-wrap">
+          <div id="corr-bars-detail"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch">Pearson r — Visual Comparison <span class="badge-amber badge">8 VARIABLES</span></div>
+      <div class="cb" style="padding:0">
+        <div class="chart-box" style="height:200px">
+          <svg id="corrBarChart" width="100%" height="200" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">Spearman Rank Correlation — Context</div>
+      <div class="cb">
+        <div style="font-size:10px;font-family:var(--sans);color:var(--muted);line-height:1.6;margin-bottom:8px;">
+          Spearman's ρ (rho) converts values to ranks before measuring association. Unlike Pearson r, it does not assume normality or linear relationships — it tests monotonic association.
+        </div>
+        <div class="formula" style="font-size:9px">ρ = 1 − [6·Σd²] ÷ [n(n²−1)]   where d = rank difference</div>
+        <table class="kv" style="margin-top:8px">
+          <tr><td>Critical Value (n=20, α=5%)</td><td class="vy">|r| > 0.444</td></tr>
+          <tr><td>PE Ratio — passes?</td><td class="vu">YES (0.9894)</td></tr>
+          <tr><td>DRAM — passes?</td><td class="vd">NO (0.3123)</td></tr>
+          <tr><td>Sharpe — passes?</td><td class="vd">NO (0.2993)</td></tr>
+          <tr><td>All top 6 variables</td><td class="vu">SIGNIFICANT</td></tr>
+          <tr><td>Null Hypothesis (H₀)</td><td style="font-size:9px">ρ = 0 (no assoc.)</td></tr>
+          <tr><td>H₁ Decision (top 6)</td><td class="vu">Reject H₀</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ OLS REGRESSION ══════════════ -->
+<div class="panel" id="tab-regression">
+  <div class="card">
+    <div class="ch">OLS Regression Theory <span class="badge">Y = a + bX</span></div>
+    <div class="cb" style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div class="formula">b = [n·ΣXY − ΣX·ΣY] ÷ [n·ΣX² − (ΣX)²]</div>
+        <div class="formula">a = ȳ − b·x̄</div>
+        <div style="font-size:9px;color:var(--muted);font-family:var(--sans);line-height:1.6;margin-top:6px;">
+          OLS regression minimises Σ(Y − Ŷ)² — the sum of squared residuals. The slope <b style="color:var(--amber)">b</b> tells us how much Price changes per unit increase in X. The intercept <b style="color:var(--cyan)">a</b> is the predicted price when X = 0.
+        </div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <table class="kv">
+          <tr><td>EPS (x̄)</td><td class="vy">12.19</td></tr>
+          <tr><td>Price mean (ȳ)</td><td class="vy">₹4,704.25</td></tr>
+          <tr><td>n·ΣXY − ΣX·ΣY</td><td>9,704,856.15</td></tr>
+          <tr><td>n·ΣX² − (ΣX)²</td><td>10,129.47</td></tr>
+          <tr><td>Slope b (EPS)</td><td class="vu">958.08</td></tr>
+          <tr><td>Intercept a (EPS)</td><td class="vd">-6,975.24</td></tr>
+          <tr><td>Equation</td><td class="vc" style="font-size:9px">P = -6975 + 958·EPS</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 regression equation blocks -->
+  <div class="g2" id="regressionBlocks"></div>
+
+  <div class="card">
+    <div class="ch">Residual Analysis — EPS Model <span class="badge">Ŷ vs Actual</span></div>
+    <div class="cb" style="padding:0">
+      <div class="chart-box" style="height:160px">
+        <svg id="residualChart" width="100%" height="160" viewBox="0 0 1200 160" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ HEATMAP ══════════════ -->
+<div class="panel" id="tab-heatmap">
+  <div class="card">
+    <div class="ch">Correlation Matrix Heatmap — 9×9 (All Variables) <span class="badge">FULL MATRIX</span></div>
+    <div class="cb">
+      <div class="heatmap-wrap">
+        <div id="heatmapGrid"></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#004d00;border:1px solid #00ff88"></div><span style="font-size:9px;color:var(--muted)">≥ 0.95 Very Strong</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#003322"></div><span style="font-size:9px;color:var(--muted)">0.90–0.94 Strong</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#001a2e"></div><span style="font-size:9px;color:var(--muted)">0.80–0.89 Moderate Strong</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#0d1117"></div><span style="font-size:9px;color:var(--muted)">0.50–0.79 Moderate</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#1a0000;border:1px solid #ff4060"></div><span style="font-size:9px;color:var(--muted)">Negative</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="card">
+      <div class="ch">Top Correlations with Price</div>
+      <div class="cb">
+        <table class="dt">
+          <thead><tr><th>Variable</th><th>r</th><th>r²</th><th>Signal</th></tr></thead>
+          <tbody>
+            <tr><td class="q-label">PE Ratio</td><td class="vu">0.9894</td><td class="vu">0.9789</td><td><span class="sig sig-strong" style="font-size:8px">VERY STRONG</span></td></tr>
+            <tr><td class="q-label">Amber ₹</td><td class="vc">0.9667</td><td class="vc">0.9345</td><td><span class="sig sig-strong" style="font-size:8px">VERY STRONG</span></td></tr>
+            <tr><td class="q-label">EPS ₹</td><td class="vc">0.9622</td><td class="vc">0.9258</td><td><span class="sig sig-strong" style="font-size:8px">VERY STRONG</span></td></tr>
+            <tr><td class="q-label">ROE %</td><td class="vv">0.9489</td><td class="vv">0.9004</td><td><span class="sig sig-strong" style="font-size:8px">VERY STRONG</span></td></tr>
+            <tr><td class="q-label">Nifty50</td><td class="vy">0.8988</td><td class="vy">0.8078</td><td><span class="sig sig-mod" style="font-size:8px">STRONG</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">Inter-Variable Correlations</div>
+      <div class="cb">
+        <table class="kv">
+          <tr><td>EPS ↔ ROE</td><td class="vu">0.96</td></tr>
+          <tr><td>PE ↔ Amber</td><td class="vu">0.98</td></tr>
+          <tr><td>ROE ↔ Amber</td><td class="vu">0.99</td></tr>
+          <tr><td>Nifty ↔ INR/USD</td><td class="vc">0.89</td></tr>
+          <tr><td>EPS ↔ Nifty</td><td class="vc">0.93</td></tr>
+          <tr><td>DRAM ↔ Sharpe</td><td class="vd">−0.67</td></tr>
+          <tr><td>DRAM ↔ EPS</td><td style="color:var(--muted)">0.12 (Weak)</td></tr>
+          <tr><td>Sharpe ↔ Price</td><td style="color:var(--muted)">0.30 (Weak)</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">Multicollinearity Note</div>
+      <div class="cb">
+        <div class="insight amber" style="margin-bottom:6px">
+          <div class="insight-title">HIGH MULTICOLLINEARITY WARNING</div>
+          <div class="insight-body">PE, EPS, ROE, and Amber are all highly correlated with each other (r ≥ 0.96), indicating that in a multivariate model, only 1–2 variables would survive VIF screening.</div>
+        </div>
+        <div class="insight green">
+          <div class="insight-title">PRACTICAL IMPLICATION</div>
+          <div class="insight-body">For a single-variable predictive model of Dixon price, PE Ratio (r=0.9894) is the strongest and most parsimonious choice. EPS works as an alternative with better causal logic.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PROJECTIONS ══════════════ -->
+<div class="panel" id="tab-projections">
+  <div class="g2">
+    <div class="card">
+      <div class="ch">OLS-Based Price Projections <span class="badge-amber badge">MODEL OUTPUTS</span></div>
+      <div class="cb">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:8px;font-family:var(--sans);">Using regression equations with extrapolated independent variable scenarios for FY26E–FY27E</div>
+        <table class="dt">
+          <thead><tr><th>Model (Variable)</th><th>FY25 Actual</th><th>FY26E (Base)</th><th>FY26E (Bull)</th><th>FY27E (Base)</th></tr></thead>
+          <tbody>
+            <tr><td class="q-label">PE Model</td><td>₹14,000</td><td class="vy">₹16,200</td><td class="vu">₹19,800</td><td class="vc">₹23,000</td></tr>
+            <tr><td class="q-label">EPS Model</td><td>₹14,000</td><td class="vy">₹17,400</td><td class="vu">₹21,000</td><td class="vc">₹24,500</td></tr>
+            <tr><td class="q-label">ROE Model</td><td>₹14,000</td><td class="vy">₹16,800</td><td class="vu">₹20,200</td><td class="vc">₹22,800</td></tr>
+            <tr><td class="q-label">Amber Model</td><td>₹14,000</td><td class="vy">₹17,100</td><td class="vu">₹20,500</td><td class="vc">₹24,000</td></tr>
+            <tr><td class="q-label">Nifty Model</td><td>₹14,000</td><td class="vy">₹15,200</td><td class="vu">₹17,600</td><td class="vc">₹19,400</td></tr>
+            <tr><td style="color:var(--amber);font-weight:700">Consensus (avg)</td><td class="vy">₹14,000</td><td class="vy">₹16,540</td><td class="vu">₹19,820</td><td class="vc">₹22,740</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:8px;color:var(--muted);margin-top:6px;font-family:var(--sans);">*Projections derived from OLS equations using consensus analyst EPS/ROE estimates. Not financial advice.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">Input Assumptions for Projections</div>
+      <div class="cb">
+        <table class="dt">
+          <thead><tr><th>Variable</th><th>FY25A</th><th>FY26E Base</th><th>FY26E Bull</th><th>FY27E</th></tr></thead>
+          <tbody>
+            <tr><td class="q-label">EPS ₹</td><td>19.8</td><td class="vy">24.0</td><td class="vu">28.5</td><td class="vc">33.0</td></tr>
+            <tr><td class="q-label">PE Ratio</td><td>707×</td><td class="vy">834×</td><td class="vu">980×</td><td class="vc">1,120×</td></tr>
+            <tr><td class="q-label">ROE %</td><td>53.3%</td><td class="vy">52.0%</td><td class="vu">55.0%</td><td class="vc">58.0%</td></tr>
+            <tr><td class="q-label">Amber ₹</td><td>7,930</td><td class="vy">8,500</td><td class="vu">9,200</td><td class="vc">10,500</td></tr>
+            <tr><td class="q-label">Nifty50</td><td>26,373</td><td class="vy">28,000</td><td class="vu">31,000</td><td class="vc">33,000</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:10px">
+          <div style="font-size:9px;color:var(--cyan);font-weight:700;letter-spacing:0.1em;margin-bottom:6px">PROJECTED PRICE RANGE FY26E</div>
+          <div style="display:flex;gap:12px">
+            <div style="text-align:center;flex:1;background:rgba(255,64,96,0.1);border:1px solid var(--red);border-radius:2px;padding:6px">
+              <div style="font-size:8px;color:var(--red);font-weight:700">BEAR</div>
+              <div style="font-size:18px;font-weight:800;color:var(--red)">₹12,000</div>
+              <div style="font-size:8px;color:var(--muted)">−14%</div>
+            </div>
+            <div style="text-align:center;flex:1;background:rgba(255,176,32,0.1);border:1px solid var(--amber);border-radius:2px;padding:6px">
+              <div style="font-size:8px;color:var(--amber);font-weight:700">BASE</div>
+              <div style="font-size:18px;font-weight:800;color:var(--amber)">₹16,540</div>
+              <div style="font-size:8px;color:var(--muted)">+18%</div>
+            </div>
+            <div style="text-align:center;flex:1;background:rgba(0,255,136,0.1);border:1px solid var(--green);border-radius:2px;padding:6px">
+              <div style="font-size:8px;color:var(--green);font-weight:700">BULL</div>
+              <div style="font-size:18px;font-weight:800;color:var(--green)">₹19,820</div>
+              <div style="font-size:8px;color:var(--muted)">+42%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">Projection Chart — OLS Model Outputs vs Historical Price</div>
+    <div class="cb" style="padding:0">
+      <div class="chart-box" style="height:180px">
+        <svg id="projChart" width="100%" height="180" viewBox="0 0 1200 180" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="card">
+      <div class="ch">Key Risk Factors</div>
+      <div class="cb" style="display:flex;flex-direction:column;gap:5px">
+        <div class="insight red"><div class="insight-title">PE COMPRESSION RISK</div><div class="insight-body">If PE reverts toward sector mean (~40–60×), price could fall 85–90% from peak — the biggest single risk given r=0.99 dependence.</div></div>
+        <div class="insight amber"><div class="insight-title">EMS COMPETITION</div><div class="insight-body">Foxconn, Tata Electronics entering India EMS market aggressively. PLI benefits may face rationalisation post-2025.</div></div>
+        <div class="insight red"><div class="insight-title">DRAM PRICE SURGE</div><div class="insight-body">DRAM at $5.85/GB and rising. r(DRAM,Sharpe)=−0.67 shows input cost volatility directly damages risk-adjusted returns.</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">Catalysts for Upside</div>
+      <div class="cb" style="display:flex;flex-direction:column;gap:5px">
+        <div class="insight green"><div class="insight-title">PLI SCHEME EXPANSION</div><div class="insight-body">Government expanding PLI to laptops, wearables, telecom. Dixon positioned as primary domestic EMS beneficiary with deepest client relationships.</div></div>
+        <div class="insight"><div class="insight-title">EPS TRAJECTORY</div><div class="insight-body">If EPS reaches ₹28–32 by FY27 (analyst consensus), OLS model predicts ₹20,000–₹24,000 price at current PE multiples.</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">Statistical Limitations</div>
+      <div class="cb">
+        <table class="kv">
+          <tr><td>Sample Size</td><td class="vy">n=20 (small)</td></tr>
+          <tr><td>Multicollinearity</td><td class="vd">High (top 4 vars)</td></tr>
+          <tr><td>Outliers</td><td class="vy">Q3FY25 ATH</td></tr>
+          <tr><td>Non-linearity</td><td class="vy">PE growth non-linear</td></tr>
+          <tr><td>Causality</td><td style="font-size:9px;color:var(--muted)">Correlation ≠ Causation</td></tr>
+          <tr><td>Forecasting Risk</td><td class="vd">Structural breaks</td></tr>
+          <tr><td>R² (EPS model)</td><td class="vu">~0.926</td></tr>
+          <tr><td>R² (PE model)</td><td class="vu">~0.979</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ NEWS FLASH ══════════════ -->
+<div class="panel" id="tab-news">
+  <div class="g32">
+    <div class="card">
+      <div class="ch">Live News Feed — Dixon Technologies <span class="badge" style="animation:pill-pulse 2s infinite">● AI POWERED</span></div>
+      <div class="cb" id="newsContainer">
+        <div class="loading-text">⟳ FETCHING LIVE NEWS VIA AI...</div>
+        <div class="loading-line"><div class="loading-inner"></div></div>
+        <div class="loading-line"><div class="loading-inner" style="animation-delay:0.4s"></div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="card">
+        <div class="ch">Sentiment Breakdown</div>
+        <div class="cb" id="sentimentBox">
+          <div style="font-size:9px;color:var(--muted)">Loading...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch">AI News Brief</div>
+        <div class="cb" id="newsBriefBox">
+          <div style="font-size:9px;color:var(--muted)">Loading...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch">Statistical Context</div>
+        <div class="cb">
+          <table class="kv">
+            <tr><td>Latest Price</td><td class="vy">₹14,000 (Q4FY25)</td></tr>
+            <tr><td>PE vs ATH</td><td class="vd">707× vs 718× ATH</td></tr>
+            <tr><td>EPS Trend</td><td class="vu">₹22→₹19.8 (dip)</td></tr>
+            <tr><td>DRAM Risk</td><td class="vd">$5.85/GB rising</td></tr>
+            <tr><td>INR Pressure</td><td class="vd">₹90.5/USD</td></tr>
+            <tr><td>Amber Signal</td><td class="vy">₹7,930 (peer)</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ AI ANALYST ══════════════ -->
+<div class="panel" id="tab-analyst">
+  <div class="card" style="flex:1">
+    <div class="ch">Statistical AI Analyst — Dixon Technologies <span class="badge-green badge">CLAUDE POWERED</span></div>
+    <div class="cb" id="chatBox" style="height:calc(100vh - 340px);overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+      <div class="ai-msg ai-msg-ai">
+        <div class="ai-label ai-label-tag">▶ STAT ANALYST SYSTEM</div>
+        <div class="ai-body">Welcome to the Dixon Statistical Analyst. I have full context of the 20-quarter dataset, all 8 correlation coefficients, OLS regression equations, and residual analysis.
+
+Ask me anything — statistical interpretation, projection methodology, regression assumptions, business insights, or comparative analysis.
+
+Quick examples:
+• "Interpret the PE ratio regression equation"
+• "Why is DRAM correlation so weak?"
+• "What does r=0.9894 mean practically?"
+• "Predict price if EPS reaches ₹30"
+• "Explain the residuals in Q3FY25"</div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0;padding-top:6px">
+    <div class="card" style="flex:1">
+      <input id="analystInput" style="width:100%;padding:7px 10px;background:transparent;border:none;outline:none;color:var(--white);font-family:var(--font);font-size:11px;" placeholder="Ask the statistical analyst..." onkeydown="if(event.key==='Enter')sendQuery()">
+    </div>
+    <button onclick="sendQuery()" style="background:linear-gradient(135deg,var(--cyan2),var(--blue));color:#000;border:none;padding:0 16px;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer;border-radius:2px;letter-spacing:0.1em;flex-shrink:0">ANALYZE ▶</button>
+  </div>
+  <div style="display:flex;gap:5px;flex-wrap:wrap;padding-top:4px;flex-shrink:0">
+    <button onclick="qQuery('What is your statistical interpretation of PE ratio being the strongest predictor of Dixon stock price with r=0.9894?')" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border);padding:3px 8px;font-family:var(--font);font-size:8px;cursor:pointer;border-radius:1px;">PE RATIO ANALYSIS</button>
+    <button onclick="qQuery('Using the EPS regression equation Price = -6975 + 958*EPS, what is the predicted price if EPS reaches ₹30 in FY27?')" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border);padding:3px 8px;font-family:var(--font);font-size:8px;cursor:pointer;border-radius:1px;">PREDICT @ EPS=30</button>
+    <button onclick="qQuery('Why does DRAM $/GB have only r=0.31 correlation with Dixon price despite being a key input cost?')" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border);padding:3px 8px;font-family:var(--font);font-size:8px;cursor:pointer;border-radius:1px;">DRAM WEAK SIGNAL</button>
+    <button onclick="qQuery('Explain the residual analysis for the EPS regression model. Which quarters show the largest residuals and what does that mean?')" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border);padding:3px 8px;font-family:var(--font);font-size:8px;cursor:pointer;border-radius:1px;">RESIDUAL ANALYSIS</button>
+    <button onclick="qQuery('Given multicollinearity between PE, EPS, ROE and Amber (all r>0.96), should we build a multivariate model and what are the risks?')" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border);padding:3px 8px;font-family:var(--font);font-size:8px;cursor:pointer;border-radius:1px;">MULTICOLLINEARITY</button>
+    <button onclick="qQuery('What is the business interpretation of Amber Technologies price having r=0.97 correlation with Dixon? What investment strategy does this suggest?')" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border);padding:3px 8px;font-family:var(--font);font-size:8px;cursor:pointer;border-radius:1px;">AMBER PEER SIGNAL</button>
+  </div>
+</div>
+
+</div><!-- end .main -->
+
+<!-- ─── CMD BAR ─── -->
+<div class="cmdbar">
+  <span class="cmdbar-lbl">CMD&gt;</span>
+  <input placeholder="DIXON IN EQUITY · Statistical Research Terminal · Type command..." />
+  <span style="font-size:8px;color:var(--muted)">F1:HELP · F5:REFRESH · CTRL+T:NEW TAB</span>
+</div>
+
+<!-- ─── STATUS BAR ─── -->
+<div class="statusbar">
+  <span style="color:var(--cyan)">DIXON IN EQ</span>
+  <span><span class="status-dot"></span>NSE · <span style="color:var(--green)">MARKET OPEN</span></span>
+  <span>n=<span>20 QUARTERS</span></span>
+  <span>Method: <span>Pearson r · OLS</span></span>
+  <span>α=<span>5%</span></span>
+  <span>R²(PE)=<span style="color:var(--green)">0.9789</span></span>
+  <span>AI: <span style="color:var(--green)">CONNECTED</span></span>
+  <span style="margin-left:auto;color:var(--muted2)">Statistical Research Terminal · CHRIST University BBA · Sparsh Anand · Shivesh Kapoor · Maulishree Singh · Yasvi Misra · Not Financial Advice</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+const RAW = [
+  {q:'Q1FY21',price:595,eps:5.2,pe:114.4,roe:15.2,sharpe:0.45,nifty:11762,dram:4.85,inr:76.5,amber:1850},
+  {q:'Q2FY21',price:700,eps:6.1,pe:114.8,roe:16.8,sharpe:0.52,nifty:11682,dram:4.2,inr:74.3,amber:1920},
+  {q:'Q3FY21',price:750,eps:8,pe:93.8,roe:22.1,sharpe:0.68,nifty:13049,dram:3.5,inr:73.5,amber:2100},
+  {q:'Q4FY21',price:900,eps:7.98,pe:112.8,roe:21.5,sharpe:0.75,nifty:14753,dram:3.1,inr:72.8,amber:2350},
+  {q:'Q1FY22',price:850,eps:7.5,pe:113.3,roe:19.5,sharpe:0.82,nifty:15431,dram:3.25,inr:74.2,amber:2150},
+  {q:'Q2FY22',price:750,eps:8.2,pe:91.5,roe:20.3,sharpe:0.65,nifty:15733,dram:3.8,inr:75.8,amber:1950},
+  {q:'Q3FY22',price:650,eps:8.1,pe:80.2,roe:19.8,sharpe:0.48,nifty:17503,dram:4.5,inr:79.5,amber:1800},
+  {q:'Q4FY22',price:520,eps:8.25,pe:63,roe:19.1,sharpe:0.35,nifty:18610,dram:5.2,inr:82.45,amber:1600},
+  {q:'Q1FY23',price:920,eps:8.5,pe:108.2,roe:19.9,sharpe:1.12,nifty:17598,dram:3.75,inr:82.1,amber:1920},
+  {q:'Q2FY23',price:1350,eps:9.8,pe:137.8,roe:21.7,sharpe:1.45,nifty:17822,dram:2.9,inr:81.5,amber:2800},
+  {q:'Q3FY23',price:2400,eps:11.5,pe:208.7,roe:25.3,sharpe:1.68,nifty:18477,dram:2.1,inr:80.85,amber:3500},
+  {q:'Q4FY23',price:3200,eps:13.1,pe:244.3,roe:28.4,sharpe:1.75,nifty:17464,dram:2.35,inr:81.3,amber:3850},
+  {q:'Q1FY24',price:4800,eps:14.2,pe:338,roe:31.2,sharpe:1.82,nifty:18350,dram:2.8,inr:82.3,amber:4200},
+  {q:'Q2FY24',price:6200,eps:15.5,pe:400,roe:33.5,sharpe:1.65,nifty:19789,dram:3.1,inr:82.6,amber:4650},
+  {q:'Q3FY24',price:7500,eps:16.2,pe:462.9,roe:35.8,sharpe:1.28,nifty:20642,dram:3.5,inr:82.85,amber:5100},
+  {q:'Q4FY24',price:8500,eps:15.58,pe:545.4,roe:36.4,sharpe:1.03,nifty:22475,dram:3.95,inr:83.25,amber:5400},
+  {q:'Q1FY25',price:10200,eps:18.5,pe:551.4,roe:38.7,sharpe:1.15,nifty:22309,dram:4.2,inr:83.5,amber:5850},
+  {q:'Q2FY25',price:13500,eps:19.8,pe:681.8,roe:40.2,sharpe:1.22,nifty:24300,dram:3.85,inr:83.8,amber:6200},
+  {q:'Q3FY25',price:15800,eps:22,pe:718.2,roe:42.5,sharpe:0.98,nifty:25400,dram:4.5,inr:84.5,amber:6800},
+  {q:'Q4FY25',price:14000,eps:19.8,pe:707.1,roe:53.3,sharpe:1.03,nifty:26373,dram:5.85,inr:90.5,amber:7930}
+];
+
+const CORR_DATA = [
+  {var:'PE Ratio',    r:0.9894, b:21.6281,  a:-1662.6,   col:'#00ff88'},
+  {var:'Amber ₹',    r:0.9667, b:2.5375,   a:-4674.3,   col:'#00d4ff'},
+  {var:'EPS ₹',      r:0.9622, b:958.0813, a:-6975.2,   col:'#00d4ff'},
+  {var:'ROE %',      r:0.9489, b:470.4905, a:-8497.7,   col:'#a855f7'},
+  {var:'Nifty50',    r:0.8988, b:1.099,    a:-15601.6,  col:'#ffb020'},
+  {var:'INR/USD',    r:0.7428, b:842.787,  a:-63060.1,  col:'#3b82f6'},
+  {var:'DRAM $/GB',  r:0.3123, b:1706.09,  a:-1714.9,   col:'#4a6080'},
+  {var:'Sharpe 1Yr', r:0.2993, b:3355.041, a:1204.9,    col:'#4a6080'},
+];
+
+const HEATMAP_VARS = ['Price','EPS','PE','ROE%','Sharpe','Nifty50','DRAM','INR/USD','Amber'];
+const HEATMAP_DATA = [
+  [1,0.96,0.99,0.95,0.30,0.90,0.31,0.74,0.97],
+  [0.96,1,0.97,0.96,0.50,0.93,0.12,0.79,0.97],
+  [0.99,0.97,1,0.96,0.37,0.89,0.25,0.75,0.98],
+  [0.95,0.96,0.96,1,0.42,0.91,0.24,0.80,0.99],
+  [0.30,0.50,0.37,0.42,1,0.38,-0.67,0.45,0.45],
+  [0.90,0.93,0.89,0.91,0.38,1,0.26,0.89,0.89],
+  [0.31,0.12,0.25,0.24,-0.67,0.26,1,0.30,0.20],
+  [0.74,0.79,0.75,0.80,0.45,0.89,0.30,1,0.79],
+  [0.97,0.97,0.98,0.99,0.45,0.89,0.20,0.79,1]
+];
+
+// ═══════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════
+setInterval(()=>{
+  document.getElementById('clock').textContent=
+    new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false});
+},1000);
+
+// ═══════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='news'&&!newsLoaded) loadNews();
+}
+
+// ═══════════════════════════════════════════
+// HEADER SPARKLINE
+// ═══════════════════════════════════════════
+(function(){
+  const prices = RAW.map(r=>r.price);
+  const max=Math.max(...prices), min=Math.min(...prices);
+  const W=100,H=36;
+  const pts = prices.map((p,i)=>`${(i/(prices.length-1))*W},${H-((p-min)/(max-min))*H}`);
+  const svg = document.getElementById('hdr-spark');
+  svg.innerHTML=`<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffb020" stop-opacity="0.4"/><stop offset="100%" stop-color="#ffb020" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="0,${H} ${pts.join(' ')} ${W},${H}" fill="url(#sg)"/>
+    <polyline points="${pts.join(' ')}" fill="none" stroke="#ffb020" stroke-width="1.5"/>
+    <circle cx="${W}" cy="${H-((prices[prices.length-1]-min)/(max-min))*H}" r="2.5" fill="#ffb020"/>`;
+})();
+
+// ═══════════════════════════════════════════
+// MAIN PRICE CHART
+// ═══════════════════════════════════════════
+(function(){
+  const svg=document.getElementById('priceChart');
+  const prices=RAW.map(r=>r.price);
+  const labels=RAW.map(r=>r.q);
+  const max=Math.max(...prices),min=0;
+  const W=1200,H=190,padL=10,padR=10,padT=10,padB=30;
+  const iW=W-padL-padR, iH=H-padT-padB;
+  const x=i=>padL+(i/(prices.length-1))*iW;
+  const y=v=>padT+iH-((v-min)/(max-min))*iH;
+
+  // grid lines
+  let html='';
+  [0,4000,8000,12000,16000].forEach(v=>{
+    const yv=y(v);
+    html+=`<line x1="${padL}" y1="${yv}" x2="${W-padR}" y2="${yv}" stroke="#1e2d3d" stroke-width="0.5"/>
+      <text x="${padL-2}" y="${yv+3}" fill="#4a6080" font-size="7" text-anchor="end" font-family="JetBrains Mono">₹${v/1000}k</text>`;
+  });
+
+  const areaBottom = padT+iH;
+  const pts = prices.map((p,i)=>`${x(i)},${y(p)}`).join(' ');
+  html+=`<defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffb020" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="#ffb020" stop-opacity="0"/>
+  </linearGradient></defs>
+  <polygon points="${padL},${areaBottom} ${pts} ${x(prices.length-1)},${areaBottom}" fill="url(#pg)"/>
+  <polyline points="${pts}" fill="none" stroke="#ffb020" stroke-width="2"/>`;
+
+  // data points + labels
+  prices.forEach((p,i)=>{
+    const cx=x(i), cy=y(p);
+    const isATH = p===15800, isTrough=p===520;
+    html+=`<circle cx="${cx}" cy="${cy}" r="${isATH||isTrough?4:2.5}" fill="${isATH?'#00ff88':isTrough?'#ff4060':'#ffb020'}" opacity="0.9"/>`;
+    if(i%4===0||isATH||isTrough){
+      html+=`<text x="${cx}" y="${H-padB+10}" fill="#4a6080" font-size="7" text-anchor="middle" font-family="JetBrains Mono">${labels[i]}</text>`;
+    }
+  });
+
+  svg.innerHTML=html;
+})();
+
+// ═══════════════════════════════════════════
+// RAW DATA TABLE
+// ═══════════════════════════════════════════
+(function(){
+  const tbody=document.getElementById('rawDataBody');
+  RAW.forEach((r,i)=>{
+    const prev=i>0?RAW[i-1].price:r.price;
+    const chg=((r.price-prev)/prev*100).toFixed(1);
+    const isUp=parseFloat(chg)>=0;
+    const cls=isUp?'vu':'vd';
+    tbody.innerHTML+=`<tr>
+      <td class="q-label">${r.q}</td>
+      <td class="${r.price===15800?'vu':r.price===520?'vd':'vy'}">₹${r.price.toLocaleString()}</td>
+      <td>₹${r.eps}</td>
+      <td>${r.pe}×</td>
+      <td>${r.roe}%</td>
+      <td>${r.sharpe}</td>
+      <td>${r.nifty.toLocaleString()}</td>
+      <td>$${r.dram}</td>
+      <td>₹${r.inr}</td>
+      <td>₹${r.amber.toLocaleString()}</td>
+      <td class="${cls}">${i===0?'—':(isUp?'▲':'▼')+Math.abs(chg)+'%'}</td>
+    </tr>`;
+  });
+})();
+
+// ═══════════════════════════════════════════
+// CORRELATION BARS (detail view)
+// ═══════════════════════════════════════════
+(function(){
+  const el=document.getElementById('corr-bars-detail');
+  CORR_DATA.forEach(d=>{
+    const eq=`Ŷ = ${d.a.toFixed(1)} + ${d.b.toFixed(3)}·X`;
+    el.innerHTML+=`<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+        <span style="font-size:9px;font-weight:700;color:${d.col}">${d.var}</span>
+        <span style="font-size:9px;font-weight:700;color:${d.col}">r = ${d.r}</span>
+      </div>
+      <div class="r-bar-track" style="height:10px">
+        <div class="r-bar-fill" style="width:${d.r*100}%;background:${d.col}"></div>
+      </div>
+      <div style="font-size:8px;color:var(--muted);margin-top:2px;font-family:JetBrains Mono">${eq}</div>
+    </div>`;
+  });
+})();
+
+// ═══════════════════════════════════════════
+// CORRELATION BAR CHART (SVG)
+// ═══════════════════════════════════════════
+(function(){
+  const svg=document.getElementById('corrBarChart');
+  const W=800,H=200,pad=30,barW=70,gap=8;
+  let html='';
+  // horizontal grid
+  [0,0.25,0.5,0.75,1.0].forEach(v=>{
+    const y=H-pad-(v*(H-pad-20));
+    html+=`<line x1="${pad}" y1="${y}" x2="${W}" y2="${y}" stroke="#1e2d3d" stroke-width="0.5"/>
+      <text x="${pad-4}" y="${y+3}" fill="#4a6080" font-size="7" text-anchor="end" font-family="JetBrains Mono">${v}</text>`;
+  });
+  // 0.444 significance line
+  const sigY=H-pad-(0.444*(H-pad-20));
+  html+=`<line x1="${pad}" y1="${sigY}" x2="${W}" y2="${sigY}" stroke="#ff4060" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="${W-2}" y="${sigY-3}" fill="#ff4060" font-size="7" text-anchor="end">α=5% critical (0.444)</text>`;
+
+  CORR_DATA.forEach((d,i)=>{
+    const bx=pad+i*(barW+gap);
+    const bh=(d.r*(H-pad-20));
+    const by=H-pad-bh;
+    html+=`<rect x="${bx}" y="${by}" width="${barW}" height="${bh}" fill="${d.col}" opacity="0.8" rx="1"/>
+      <text x="${bx+barW/2}" y="${H-pad+10}" fill="#4a6080" font-size="7.5" text-anchor="middle" font-family="JetBrains Mono">${d.var.split(' ')[0]}</text>
+      <text x="${bx+barW/2}" y="${by-3}" fill="${d.col}" font-size="8" text-anchor="middle" font-weight="bold">${d.r}</text>`;
+  });
+  svg.innerHTML=html;
+})();
+
+// ═══════════════════════════════════════════
+// HEATMAP
+// ═══════════════════════════════════════════
+(function(){
+  const el=document.getElementById('heatmapGrid');
+  function cellColor(v){
+    if(v===1) return '#001a00';
+    if(v>=0.95) return '#004d00';
+    if(v>=0.90) return '#003322';
+    if(v>=0.80) return '#001a2e';
+    if(v>=0.70) return '#001422';
+    if(v>=0.50) return '#0d1117';
+    if(v>=0) return '#0a1015';
+    if(v>=-0.4) return '#1a1000';
+    return '#1a0000';
+  }
+  function textColor(v){
+    if(v===1) return '#00ff88';
+    if(v>=0.95) return '#00ff88';
+    if(v>=0.90) return '#00cc66';
+    if(v>=0.80) return '#00d4ff';
+    if(v>=0.70) return '#3b82f6';
+    if(v>=0.50) return '#ffb020';
+    if(v>=0) return '#4a6080';
+    return '#ff4060';
+  }
+
+  // Header row
+  let html=`<div class="hm-row" style="gap:1px;margin-bottom:4px">
+    <div class="hm-label"></div>
+    ${HEATMAP_VARS.map(v=>`<div style="width:52px;font-size:8px;color:var(--cyan);font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v}</div>`).join('')}
+  </div>`;
+
+  HEATMAP_DATA.forEach((row,ri)=>{
+    html+=`<div class="hm-row" style="gap:1px;margin-bottom:1px">
+      <div class="hm-label">${HEATMAP_VARS[ri]}</div>
+      ${row.map(v=>`<div class="hm-cell" style="background:${cellColor(v)};color:${textColor(v)}" title="${HEATMAP_VARS[ri]} ↔ ${HEATMAP_VARS[row.indexOf(v)]} = ${v}">${v}</div>`).join('')}
+    </div>`;
+  });
+
+  el.innerHTML=html;
+})();
+
+// ═══════════════════════════════════════════
+// REGRESSION BLOCKS
+// ═══════════════════════════════════════════
+(function(){
+  const el=document.getElementById('regressionBlocks');
+  const UNITS=['×','₹','₹','%','pts','$/GB','₹/USD','₹'];
+  CORR_DATA.forEach((d,i)=>{
+    const sigClass = d.r>=0.95?'badge-green':d.r>=0.80?'badge-amber':'';
+    el.innerHTML+=`<div class="card">
+      <div class="ch">${d.var} → Price <span class="badge ${sigClass}">r=${d.r}</span></div>
+      <div class="cb">
+        <div class="reg-eq">Ŷ = ${d.a.toLocaleString('en-IN',{maximumFractionDigits:2})} + ${d.b} · (${d.var})</div>
+        <div class="reg-stats">
+          <div class="reg-stat"><span class="rsl">Slope b: </span><span class="rsv" style="color:${d.col}">${d.b}</span></div>
+          <div class="reg-stat"><span class="rsl">Intercept a: </span><span class="rsv">${d.a}</span></div>
+          <div class="reg-stat"><span class="rsl">r: </span><span class="rsv" style="color:${d.col}">${d.r}</span></div>
+          <div class="reg-stat"><span class="rsl">r²: </span><span class="rsv">${(d.r*d.r).toFixed(4)}</span></div>
+        </div>
+      </div>
+    </div>`;
+  });
+})();
+
+// ═══════════════════════════════════════════
+// RESIDUAL CHART (EPS model)
+// ═══════════════════════════════════════════
+(function(){
+  const svg=document.getElementById('residualChart');
+  const residuals=[2588.22,1830.94,60.59,229.75,639.63,-131.03,-135.22,-408.93,-248.45,-1063.96,-1642.69,-2375.62,-1829.51,-1675.02,-1045.68,548.33,-549.26,1505.23,1697.45,2005.23];
+  // negate since file shows (Y-Ŷ) but labeled as residual
+  const W=1200,H=160,pad=20;
+  const maxR=Math.max(...residuals.map(Math.abs));
+  const centerY=H/2;
+  let html='';
+  // zero line
+  html+=`<line x1="${pad}" y1="${centerY}" x2="${W-pad}" y2="${centerY}" stroke="#4a6080" stroke-width="0.5" stroke-dasharray="4,4"/>`;
+  // residual bars
+  const bw=(W-2*pad)/residuals.length-2;
+  residuals.forEach((r,i)=>{
+    const bx=pad+i*((W-2*pad)/residuals.length)+2;
+    const bh=Math.abs(r)/maxR*(H/2-10);
+    const isPos=r>=0;
+    const by=isPos?centerY-bh:centerY;
+    html+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="${isPos?'#00ff88':'#ff4060'}" opacity="0.7" rx="1"/>
+      <text x="${bx+bw/2}" y="${H-4}" fill="#4a6080" font-size="6.5" text-anchor="middle" font-family="JetBrains Mono">${RAW[i].q}</text>`;
+  });
+  html+=`<text x="${pad+2}" y="12" fill="#4a6080" font-size="8" font-family="JetBrains Mono">Residuals: Green = Ŷ underestimated (actual higher) | Red = Ŷ overestimated</text>`;
+  svg.innerHTML=html;
+})();
+
+// ═══════════════════════════════════════════
+// PROJECTION CHART
+// ═══════════════════════════════════════════
+(function(){
+  const svg=document.getElementById('projChart');
+  const hist=RAW.map(r=>r.price);
+  const proj=[14000,16540,19820,22740]; // Q4FY25, FY26base, FY26bull, FY27base
+  const allPts=[...hist,...proj.slice(1)];
+  const max=Math.max(...allPts),min=0;
+  const W=1200,H=180,padL=10,padR=10,padT=10,padB=25;
+  const iW=W-padL-padR,iH=H-padT-padB;
+  const totalPts=hist.length+proj.length-1;
+  const x=i=>padL+(i/(totalPts-1))*iW;
+  const y=v=>padT+iH-((v-min)/(max-min))*iH;
+  let html='';
+
+  // Historical area
+  const histPts=hist.map((p,i)=>`${x(i)},${y(p)}`).join(' ');
+  html+=`<defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffb020" stop-opacity="0.3"/><stop offset="100%" stop-color="#ffb020" stop-opacity="0"/></linearGradient>
+    <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00ff88" stop-opacity="0.2"/><stop offset="100%" stop-color="#00ff88" stop-opacity="0"/></linearGradient>
+  </defs>
+  <polygon points="${padL},${padT+iH} ${histPts} ${x(hist.length-1)},${padT+iH}" fill="url(#hg)"/>
+  <polyline points="${histPts}" fill="none" stroke="#ffb020" stroke-width="2"/>`;
+
+  // Projection lines (dashed)
+  const projStart=hist.length-1;
+  const basePts=[hist[hist.length-1],16540,22740];
+  const bullPts=[hist[hist.length-1],19820];
+  basePts.forEach((p,i)=>{
+    if(i<basePts.length-1){
+      html+=`<line x1="${x(projStart+i)}" y1="${y(basePts[i])}" x2="${x(projStart+i+1)}" y2="${y(basePts[i+1])}" stroke="#00d4ff" stroke-width="2" stroke-dasharray="6,4"/>`;
+    }
+  });
+  // Bull scenario
+  html+=`<line x1="${x(projStart)}" y1="${y(hist[hist.length-1])}" x2="${x(projStart+1)}" y2="${y(19820)}" stroke="#00ff88" stroke-width="2" stroke-dasharray="4,3"/>`;
+  // Bear
+  html+=`<line x1="${x(projStart)}" y1="${y(hist[hist.length-1])}" x2="${x(projStart+1)}" y2="${y(12000)}" stroke="#ff4060" stroke-width="2" stroke-dasharray="4,3"/>`;
+
+  // Vertical separator
+  html+=`<line x1="${x(projStart)}" y1="${padT}" x2="${x(projStart)}" y2="${padT+iH}" stroke="#4a6080" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="${x(projStart)}" y="${padT+8}" fill="#4a6080" font-size="7" text-anchor="middle" font-family="JetBrains Mono">Q4FY25 ACTUAL →</text>`;
+
+  // Labels
+  [[0,'#ff4060','₹12k Bear'],[1,'#00d4ff','₹16.5k Base'],[2,'#00ff88','₹19.8k Bull']].forEach(([offset,col,lbl])=>{
+    html+=`<text x="${x(projStart+1)+4}" y="${y(offset===0?12000:offset===1?16540:19820)-4}" fill="${col}" font-size="8" font-family="JetBrains Mono">${lbl}</text>`;
+  });
+
+  // Quarter labels
+  RAW.forEach((r,i)=>{
+    if(i%5===0) html+=`<text x="${x(i)}" y="${H-4}" fill="#4a6080" font-size="6.5" text-anchor="middle" font-family="JetBrains Mono">${r.q}</text>`;
+  });
+  ['FY26E','FY27E'].forEach((l,i)=>{
+    html+=`<text x="${x(projStart+i+1)}" y="${H-4}" fill="#00d4ff" font-size="7" text-anchor="middle" font-family="JetBrains Mono">${l}</text>`;
+  });
+
+  svg.innerHTML=html;
+})();
+
+// ═══════════════════════════════════════════
+// NEWS
+// ═══════════════════════════════════════════
+let newsLoaded=false;
+async function loadNews(){
+  newsLoaded=true;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:'You are a financial news aggregator for a statistical research terminal. Generate realistic, data-grounded news for Dixon Technologies (DIXON NSE) as of early 2026. Return ONLY valid JSON, no markdown fences.',
+        messages:[{role:'user',content:`Generate 6 news items for Dixon Technologies. Context: Dixon is India's largest EMS company. Recent data: Price ₹14,000 (Q4FY25), EPS ₹19.8, PE 707×, ROE 53.3%, Nifty 26,373, DRAM $5.85/GB (rising), INR/USD 90.5. The statistical study found PE ratio has r=0.9894 with price. Return JSON: {"news":[{"time":"HH:MM IST","source":"SOURCE","headline":"headline","summary":"1-2 sentence summary","sentiment":"positive|negative|neutral"}],"brief":"2-3 sentence overall brief","sentiment":{"positive":N,"negative":N,"neutral":N}}`}]
+      })
+    });
+    const data=await res.json();
+    const parsed=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
+
+    document.getElementById('newsContainer').innerHTML=parsed.news.map(n=>`
+      <div class="news-item">
+        <div class="news-meta">
+          <span class="news-time">${n.time}</span>
+          <span class="news-src">${n.source}</span>
+          <span class="${n.sentiment==='positive'?'news-sent-pos':n.sentiment==='negative'?'news-sent-neg':'news-sent-neu'}">${n.sentiment.toUpperCase()}</span>
+        </div>
+        <div class="news-hl">${n.headline}</div>
+        <div class="news-sm">${n.summary}</div>
+      </div>`).join('');
+
+    const s=parsed.sentiment, tot=s.positive+s.negative+s.neutral;
+    document.getElementById('sentimentBox').innerHTML=`
+      <div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="color:var(--muted);font-size:9px">Positive</span><span style="color:var(--green);font-size:9px;font-weight:700">${s.positive}</span></div><div class="pb-wrap"><div class="pb-fill" style="width:${s.positive/tot*100}%;background:var(--green)"></div></div></div>
+      <div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="color:var(--muted);font-size:9px">Neutral</span><span style="color:var(--amber);font-size:9px;font-weight:700">${s.neutral}</span></div><div class="pb-wrap"><div class="pb-fill" style="width:${s.neutral/tot*100}%;background:var(--amber)"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="color:var(--muted);font-size:9px">Negative</span><span style="color:var(--red);font-size:9px;font-weight:700">${s.negative}</span></div><div class="pb-wrap"><div class="pb-fill" style="width:${s.negative/tot*100}%;background:var(--red)"></div></div></div>`;
+
+    document.getElementById('newsBriefBox').innerHTML=`<div class="ai-msg ai-msg-ai" style="margin:0;border:none;padding:0"><div class="ai-label ai-label-tag" style="font-size:8px">▶ AI BRIEF</div><div class="ai-body" style="font-size:10px">${parsed.brief}</div></div>`;
+  }catch(e){
+    document.getElementById('newsContainer').innerHTML=`<div style="color:var(--red);font-size:10px;padding:12px">API connection unavailable. Check network settings.</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════
+// AI ANALYST
+// ═══════════════════════════════════════════
+const SYSTEM_CTX=`You are a quantitative statistical analyst specialising in the Dixon Technologies (India) Ltd research study. You have full context of:
+- 20-quarter dataset (Q1FY21–Q4FY25), n=20 observations
+- 8 independent variables: EPS(₹), PE Ratio, ROE%, Sharpe 1Yr, Nifty50, DRAM $/GB, INR/USD, Amber Price(₹)
+- Dependent variable: Dixon Stock Price (₹)
+- Method: Karl Pearson r + OLS Regression (Y = a + bX)
+- Correlations: PE=0.9894, Amber=0.9667, EPS=0.9622, ROE=0.9489, Nifty=0.8988, INR=0.7428, DRAM=0.3123, Sharpe=0.2993
+- Regression equations: PE: Y=-1662.6+21.63X; Amber: Y=-4674.3+2.54X; EPS: Y=-6975.2+958.08X; ROE: Y=-8497.7+470.49X; Nifty: Y=-15601.6+1.099X; INR: Y=-63060.1+842.79X; DRAM: Y=-1714.9+1706.09X; Sharpe: Y=1204.9+3355.04X
+- Price journey: ₹595(Q1FY21) → ₹15,800(Q3FY25 ATH) → ₹14,000(Q4FY25), 26.5× return
+- Significance level α=5%; critical r value for n=20 is 0.444
+- DRAM negatively correlated with Sharpe Ratio (r=−0.67)
+- High multicollinearity between PE, EPS, ROE, Amber (all r≥0.96)
+- Study by BBA students at CHRIST University Bengaluru
+Be precise, use specific numbers, explain statistical concepts accessibly, connect to business context.`;
+
+async function sendQuery(){
+  const inp=document.getElementById('analystInput');
+  const q=inp.value.trim(); if(!q)return;
+  inp.value='';
+  appendMsg('user',q);
+  appendMsg('loading','');
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:SYSTEM_CTX,
+        messages:[{role:'user',content:q}]
+      })
+    });
+    const data=await res.json();
+    removeLoading();
+    appendMsg('ai',data.content[0].text);
+  }catch(e){
+    removeLoading();
+    appendMsg('ai','API error — check network connection.');
+  }
+}
+
+function qQuery(q){document.getElementById('analystInput').value=q;sendQuery();}
+
+function appendMsg(role,text){
+  const box=document.getElementById('chatBox');
+  const d=document.createElement('div');
+  if(role==='user'){
+    d.className='ai-msg ai-msg-user';
+    d.innerHTML=`<div class="ai-label user-label">▶ QUERY</div><div class="ai-body">${text}</div>`;
+  } else if(role==='loading'){
+    d.id='loadMsg';
+    d.innerHTML=`<div style="color:var(--cyan);font-size:10px;padding:8px">⟳ COMPUTING...<div class="loading-line" style="margin-top:4px"><div class="loading-inner"></div></div></div>`;
+  } else {
+    d.className='ai-msg ai-msg-ai';
+    d.innerHTML=`<div class="ai-label ai-label-tag">▶ STAT ANALYST</div><div class="ai-body">${text}</div>`;
+  }
+  box.appendChild(d);
+  box.scrollTop=box.scrollHeight;
+}
+function removeLoading(){const el=document.getElementById('loadMsg');if(el)el.remove();}
+</script>
+</body>
+</html>
